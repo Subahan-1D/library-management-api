@@ -11,7 +11,7 @@ const BookSchema = z.object({
   genre: z.string().min(1, "Genre is required"),
   isbn: z.string().min(1, "ISBN is required"),
   description: z.string().optional(),
-  copies: z.number().min(1 , "Copies must be a positive number"),
+  copies: z.number().min(1, "Copies must be a positive number"),
   available: z.boolean(),
 });
 
@@ -99,3 +99,54 @@ bookRoutes.get("/:bookId", async (req: Request, res: Response) => {
   }
 });
 
+bookRoutes.put("/:bookId", async (req: Request, res: Response) => {
+  try {
+    const bookId = req.params.bookId;
+    const updateData = req.body;
+    const updateBook = await Book.findByIdAndUpdate(bookId, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updateBook) {
+      res.status(404).json({
+        success: false,
+        message: "Book Not Found",
+        error: null,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Book updated successfully",
+      data: updateBook,
+    });
+  } catch (error) {
+    handleError(res, 500, "Failed to retrieve books", error);
+  }
+});
+
+bookRoutes.delete("/:bookId", async (req: Request, res: Response) => {
+  try {
+    const bookId = req.params.bookId;
+
+    const bookDelete = await Book.findByIdAndDelete(bookId);
+
+    if (!bookDelete) {
+      res.status(400).json({
+        success: false,
+        message: `Book id is ${bookId} not found`,
+        data: null,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Book deleted successfully",
+      data: null,
+    });
+  } catch (error) {
+    handleError(res, 500, "Failed to retrieve books", error);
+  }
+});
