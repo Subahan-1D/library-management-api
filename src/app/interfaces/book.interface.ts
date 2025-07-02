@@ -6,4 +6,5 @@ export interface IBook {
   description: string;
   copies: number;
   available: boolean;
+  updateAvailability() : Promise<this>
 }
