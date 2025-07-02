@@ -2,7 +2,6 @@ import express, { Request, Response } from "express";
 import { Book } from "../models/book.model";
 import { z } from "zod";
 import { handleError } from "../utils/errorHandaler";
-import { Query } from "mongoose";
 
 export const bookRoutes = express.Router();
 
@@ -46,11 +45,32 @@ bookRoutes.get("/", async (req: Request, res: Response) => {
       query.genre = filter.toString().toUpperCase();
     }
 
-    const books = await Book.find({genre : "SCIENCE"});
-   res.status(200).json({
+    const sortOrder = sort === "desc" ? -1 : 1;
+
+    let findBooks = Book.find(query).sort({
+      [sortBy as string]: sortOrder,
+    });
+
+    if (limit !== undefined) {
+      const parseLimit = parseInt(limit as string);
+      if (!isNaN(parseLimit) && parseLimit > 0) {
+        findBooks = findBooks.limit(parseLimit);
+      }
+    }
+
+    const books = await findBooks;
+
+    res.status(200).json({
       success: true,
       message: "Books retrieved successfully",
       data: books,
     });
-  } catch (error) {}
+  } catch (error) {
+    handleError(
+      res,
+      500,
+      "Something went wrong fetching retrieve books",
+      error
+    );
+  }
 });
