@@ -11,7 +11,7 @@ const BookSchema = z.object({
   genre: z.string().min(1, "Genre is required"),
   isbn: z.string().min(1, "ISBN is required"),
   description: z.string().optional(),
-  copies: z.number().min(0, "Copies must be a positive number"),
+  copies: z.number().min(1 , "Copies must be a positive number"),
   available: z.boolean(),
 });
 
@@ -74,3 +74,28 @@ bookRoutes.get("/", async (req: Request, res: Response) => {
     );
   }
 });
+
+bookRoutes.get("/:bookId", async (req: Request, res: Response) => {
+  try {
+    const bookId = req.params.bookId;
+    const book = await Book.findById(bookId);
+
+    if (!book) {
+      res.status(404).json({
+        success: false,
+        message: "Book not found",
+        error: null,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Book retrieved successfully",
+      data: book,
+    });
+  } catch (error) {
+    handleError(res, 500, "Failed to retrieve books", error);
+  }
+});
+
