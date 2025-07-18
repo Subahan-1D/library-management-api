@@ -35,9 +35,16 @@ bookRoutes.post("/", async (req: Request, res: Response) => {
   }
 });
 
+
 bookRoutes.get("/", async (req: Request, res: Response) => {
   try {
-    const { filter, sortBy = "createdAt", sort = "asc", limit } = req.query;
+    const {
+      filter,
+      sortBy = "createdAt",
+      sort = "asc",
+      limit,
+      page,
+    } = req.query;
 
     const query: any = {};
 
@@ -47,16 +54,19 @@ bookRoutes.get("/", async (req: Request, res: Response) => {
 
     const sortOrder = sort === "desc" ? -1 : 1;
 
-    let findBooks = Book.find(query).sort({
-      [sortBy as string]: sortOrder,
-    });
+    // Pagination setup
+    const parseLimit = limit ? parseInt(limit as string) : 6;
+    const parsePage = page ? parseInt(page as string) : 1;
+    const skip = (parsePage - 1) * parseLimit;
 
-    if (limit !== undefined) {
-      const parseLimit = parseInt(limit as string);
-      if (!isNaN(parseLimit) && parseLimit > 0) {
-        findBooks = findBooks.limit(parseLimit);
-      }
-    }
+    // Total documents count for pagination
+    const total = await Book.countDocuments(query);
+
+    // Build findBooks query
+    let findBooks = Book.find(query)
+      .sort({ [sortBy as string]: sortOrder })
+      .skip(skip)
+      .limit(parseLimit);
 
     const books = await findBooks;
 
@@ -64,16 +74,24 @@ bookRoutes.get("/", async (req: Request, res: Response) => {
       success: true,
       message: "Books retrieved successfully",
       data: books,
+      meta: {
+        total,
+        page: parsePage,
+        limit: parseLimit,
+        totalPages: Math.ceil(total / parseLimit),
+      },
     });
   } catch (error) {
     handleError(
       res,
       500,
-      "Something went wrong fetching retrieve books",
+      "Something went wrong fetching books",
       error
     );
   }
 });
+
+
 
 bookRoutes.get("/:bookId", async (req: Request, res: Response) => {
   try {
