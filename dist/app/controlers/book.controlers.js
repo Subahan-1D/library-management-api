@@ -47,30 +47,38 @@ exports.bookRoutes.post("/", (req, res) => __awaiter(void 0, void 0, void 0, fun
 }));
 exports.bookRoutes.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { filter, sortBy = "createdAt", sort = "asc", limit } = req.query;
+        const { filter, sortBy = "createdAt", sort = "asc", limit, page, } = req.query;
         const query = {};
         if (filter) {
             query.genre = filter.toString().toUpperCase();
         }
         const sortOrder = sort === "desc" ? -1 : 1;
-        let findBooks = book_model_1.Book.find(query).sort({
-            [sortBy]: sortOrder,
-        });
-        if (limit !== undefined) {
-            const parseLimit = parseInt(limit);
-            if (!isNaN(parseLimit) && parseLimit > 0) {
-                findBooks = findBooks.limit(parseLimit);
-            }
-        }
+        // Pagination setup
+        const parseLimit = limit ? parseInt(limit) : 6;
+        const parsePage = page ? parseInt(page) : 1;
+        const skip = (parsePage - 1) * parseLimit;
+        // Total documents count for pagination
+        const total = yield book_model_1.Book.countDocuments(query);
+        // Build findBooks query
+        let findBooks = book_model_1.Book.find(query)
+            .sort({ [sortBy]: sortOrder })
+            .skip(skip)
+            .limit(parseLimit);
         const books = yield findBooks;
         res.status(200).json({
             success: true,
             message: "Books retrieved successfully",
             data: books,
+            meta: {
+                total,
+                page: parsePage,
+                limit: parseLimit,
+                totalPages: Math.ceil(total / parseLimit),
+            },
         });
     }
     catch (error) {
-        (0, errorHandaler_1.handleError)(res, 500, "Something went wrong fetching retrieve books", error);
+        (0, errorHandaler_1.handleError)(res, 500, "Something went wrong fetching books", error);
     }
 }));
 exports.bookRoutes.get("/:bookId", (req, res) => __awaiter(void 0, void 0, void 0, function* () {

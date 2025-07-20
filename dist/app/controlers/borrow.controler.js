@@ -43,6 +43,9 @@ exports.borrowRoutes.post("/", (req, res) => __awaiter(void 0, void 0, void 0, f
 }));
 exports.borrowRoutes.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = (page - 1) * limit;
         const summary = yield borrow_models_1.Borrow.aggregate([
             {
                 $group: {
@@ -72,10 +75,18 @@ exports.borrowRoutes.get("/", (req, res) => __awaiter(void 0, void 0, void 0, fu
                 },
             },
         ]);
+        const total = summary.length;
+        const paginated = summary.slice(skip, skip + limit);
         res.status(200).json({
             success: true,
             message: "Borrowed books summary retrieved successfully",
-            data: summary,
+            data: paginated,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
         });
     }
     catch (error) {
